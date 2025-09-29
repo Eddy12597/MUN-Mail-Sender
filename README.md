@@ -1,6 +1,12 @@
 # BIPHMUN Registration Automation
 
-Open this in a Markdown Viewer or online (https://markdownlivepreview.com/), then paste all of the following into the viewer.
+*Intended for team use only*
+
+View this file on [github](https://github.com/BIPHMUN/MUN-Email-Sender).
+
+You can download a zip file of this project by:
+1. Clicking the green `Code` button and selecting `Download ZIP` (simple), or
+2. Have git installed and cloning this repository: `git clone https://github.com/BIPHMUN/MUN-Email-Sender`(advanced)
 
 ## Description
 
