@@ -1,0 +1,7 @@
+{
+    "UN Human Rights Council": ["US", "GB", "CN", "RU", "FR", "DE", "JP", "IN", "BR", "ZA", "EG", "MX", "CU", "SA", "PK", "AR", "SE", "ET", "ID", "SN"],
+    "UN Security Council": ["US", "GB", "CN", "RU", "FR", "JP", "IN", "BR", "DE", "EG", "MZ", "AE", "GH", "MT", "EC", "CH", "DZ", "KR", "NO", "CL"],
+    "UN Environment Programme": ["US", "GB", "CN", "RU", "FR", "CA", "DK", "NO", "KE", "CR", "NZ", "FI", "BT", "MX", "RW", "SG", "MA", "BR", "MH", "CH"],
+    "UN World Health Organization": ["US", "GB", "CN", "RU", "FR", "ZA", "IN", "NG", "RW", "VN", "CU", "DE", "TH", "PK", "GH", "QA", "KR", "CA", "AU", "CL"],
+    "Historical Council": ["US", "GB", "CN", "RU", "FR", "IT", "GR", "EG", "IL", "IR", "TR", "ES", "DE", "JP", "MX", "IN", "VN", "ZA", "MA", "PE"]
+}
