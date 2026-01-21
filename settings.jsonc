@@ -2,7 +2,7 @@
     // --- CONTROLS WHETHER IT ACTUALLY RUNS OR ITS A TEST RUN. True = test run, False = ACTUAL run
     "DEBUG": "True",
     // --- CHANGE THE YEAR AND YOUR EMAIL ---
-    "year": "2025",
+    "year": "2026",
     "my-email": "eddy12597@163.com", // your email would be Cc'ed
 
     // --- CHANGE WECHAT GROUPCHAT QR CODE FILENAME ---
@@ -16,16 +16,16 @@
     
 
     // --- CHANGE THESE IF REG FORM IS CHANGED ---
-    "preferred-name-question-name": "Preferred Name",
-    "email-address-question-name": "Email Address",
-    "wechat-id-question-name": "Wechat ID",
-    "committee-preference-question-name": "Please rank your committee preference",
+    "preferred-name-question-name": "Preferred Name / 英文名",
+    "email-address-question-name": "Email Address / 电子邮件地址",
+    "wechat-id-question-name": "Wechat ID / 微信号",
+    "committee-preference-question-name": "Attached to the right is the listed topics for BIPHMUN 2026. Please Rank your Committee Preference. Note that this does not represent your final assigned committee.",
     "preferred-country-question-name": "Preferred country",
 
     // --- USUALLY YOU DONT NEED TO CHANGE THESE ---
     "config-committee-and-country-list-path": "./config.json",
     "config-country-to-code": "./country_code.json",
-    "official-website-url-base": "https://biphmun.netlify.app", 
+    "official-website-url-base": "https://biphmun.org", 
     "school-email": "mun-biph@basischina.com",
     "school-email-password-path": "./.env",
     "school-email-password-question": "EMAIL_PASSWORD"
