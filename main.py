@@ -19,7 +19,7 @@ def raiseerror(s: str = ""):
     raise RuntimeError(s)
 
 CONFIG: dict[str, str] = {}
-with open(str(Path('./settings.jsonc'))) as f:
+with open(str(Path('./settings.jsonc')), encoding="utf-8") as f:
     CONFIG = json5.load(f)
 
 if len(CONFIG.keys()) == 0:
@@ -175,7 +175,7 @@ def get_email_html(name: str, committee: str, country: str) -> html_str:
     html = """
 <div id="main" style="font-family: Arial; font-size: 20px; display: flex; align-items: center; flex-direction: column;background-color: #0a4d7f">
     <div id="graphics" style="font-family: Arial; font-size: 20px; width: 80%">
-        <img alt="logo" id="logo" src="__WEBSITE__/assets/logos/logo-rect-white-text.png" style="width: 50%; margin-left: -3%; border-radius: 8px; margin-top: 15%">
+        <img alt="logo" id="logo" src="__LOGO_URL__" style="width: 50%; margin-left: -3%; border-radius: 8px; margin-top: 15%">
     </div>
     <div id="letter" style="font-family: Arial; font-size: 20px; margin-left: 10%; margin-right: 10%">
         <p style="color: #fff">Dear __NAME__,</p>
@@ -184,7 +184,7 @@ def get_email_html(name: str, committee: str, country: str) -> html_str:
         <p style="color: #fff">Please visit our official MUN website for extra references and resources: </p>
             <a href="__WEBSITE__" style="color: orange">__WEBSITE__</a>
         <p style="color: #fff">Best Regards,</p>
-        <p style="color: #fff">The BIPHMUN Team</p>
+        <p style="color: #fff">BIPH MUN Team</p>
     </div>
 </div>
 """
@@ -193,18 +193,22 @@ def get_email_html(name: str, committee: str, country: str) -> html_str:
         .replace("__COMMITTEE__", committee)\
         .replace("__COUNTRY__", country)\
         .replace("__YEAR__", str(year))\
-        .replace("__WEBSITE__", CONFIG['official-website-url-base'])
+        .replace("__WEBSITE__", CONFIG['official-website-url-base'])\
+        .replace("__LOGO_URL__", CONFIG.get("logo-url",\
+            CONFIG.get("official-website-url-base", "https://biphmun.org") + "/assets/logos/logo-rect-text-white.png"
+        ))
 
 
 delegate_reg_path = Path(CONFIG['delegate-registration-spreadsheet-path'])
 df = pd.read_excel(str(delegate_reg_path))
 
-if "Email Address" not in df.columns:
+email_address_question_name = CONFIG.get("email-address-question-name", "Email Address")
+
+if email_address_question_name not in df.columns:
     raiseerror("Missing 'Email Address' column in registration spreadsheet")
 
-
 # --- Deduplicate registrations by Email ---
-dupes = df[df.duplicated(subset=["Email Address"], keep=False)]
+dupes = df[df.duplicated(subset=[email_address_question_name], keep=False)]
 
 if not dupes.empty:
     print(f"{Fore.YELLOW}Found duplicate registrations by email:{Style.RESET_ALL}")
@@ -215,7 +219,7 @@ if not dupes.empty:
         CONFIG['committee-preference-question-name'],
     ]
 
-    for email, group in dupes.groupby("Email Address"):
+    for email, group in dupes.groupby(email_address_question_name):
         print(f"\n{Fore.CYAN}Email: {email}{Style.RESET_ALL}")
 
         for idx, row in group.iterrows():
@@ -279,7 +283,13 @@ for index, row in df.iterrows():
 
     # 1) parse committee preference list (existing logic)
     committees_raw: list[str] = str(row[CONFIG['committee-preference-question-name']]).strip().split(";")
-
+    
+    if len(committees_raw) == 1:
+        print(f"{Fore.YELLOW}Maybe it's Chinese semicolon characters. Retrying...")
+        committees_raw = committees_raw[0].split("；")
+        if len(committees_raw) == 1:
+            raiseerror(f"Recognized only one committee: {committees_raw}.")
+    
     committee_choices: list[str] = []
     for comr in committees_raw:
         comr = comr.strip()
