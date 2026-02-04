@@ -60,21 +60,32 @@ y_data = np.array(y)
 # x0: midpoint, guess based on data range
 initial_guess = [80, 0.1, np.median(x_data)]
 
+L_fit: float | int =0
+L_fallback: float | int =0
+
 # Try to fit logistic curve, if it fails, use sensible defaults
 try:
     params, covariance = curve_fit(logistic_func, x_data, y_data, 
                                    p0=initial_guess, maxfev=5000)
     L_fit, k_fit, x0_fit = params
-    
     # Generate smooth logistic curve for the full x-range (0 to 60)
     x_smooth = np.linspace(0, 60, 200)
     y_logistic = logistic_func(x_smooth, L_fit, k_fit, x0_fit)
     
-    # Plot logistic regression
-    # plt.plot(x_smooth, y_logistic, 'r-', linewidth=2, 
-    #          label=f'Logistic Regression\nL={L_fit:.1f}, k={k_fit:.3f}, x0={x0_fit:.1f}')
+    # Compute R^2 on the observed x-data using the fitted parameters
+    y_pred_fit = logistic_func(x_data, L_fit, k_fit, x0_fit)
+    ss_res = np.sum((y_data - y_pred_fit) ** 2)
+    ss_tot = np.sum((y_data - np.mean(y_data)) ** 2)
+    if ss_tot == 0:
+        r2 = 1.0 if ss_res == 0 else 0.0
+    else:
+        r2 = 1.0 - (ss_res / ss_tot)
+
+    # Plot logistic regression with R^2 in the legend
+    plt.plot(x_smooth, y_logistic, 'r-', linewidth=2, 
+             label=f'Logistic Regression\nL={L_fit:.1f}, k={k_fit:.3f}, x0={x0_fit:.1f}, R2={r2:.3f}')
     
-    print(f"Logistic parameters: L={L_fit:.1f}, k={k_fit:.3f}, x0={x0_fit:.1f}")
+    print(f"Logistic parameters: L={L_fit:.1f}, k={k_fit:.3f}, x0={x0_fit:.1f}, R^2={r2:.3f}")
     
 except (RuntimeError, ValueError) as e:
     print(f"Could not fit logistic curve: {e}")
@@ -85,15 +96,27 @@ except (RuntimeError, ValueError) as e:
     k_fallback = 0.2
     x0_fallback = np.mean(x_data)
     
-    # x_smooth = np.linspace(0, 60, 200)
-    # y_logistic = logistic_func(x_smooth, L_fallback, k_fallback, x0_fallback)
+    x_smooth = np.linspace(0, 60, 200)
+    y_logistic = logistic_func(x_smooth, L_fallback, k_fallback, x0_fallback)
     
-    # plt.plot(x_smooth, y_logistic, 'r--', linewidth=2, 
-    #          label=f'Logistic Estimate\nL={L_fallback:.1f}, k={k_fallback:.3f}')
+    # Compute R^2 for the fallback curve as an informative estimate
+    y_pred_fallback = logistic_func(x_data, L_fallback, k_fallback, x0_fallback)
+    ss_res_fb = np.sum((y_data - y_pred_fallback) ** 2)
+    ss_tot_fb = np.sum((y_data - np.mean(y_data)) ** 2)
+    if ss_tot_fb == 0:
+        r2_fb = 1.0 if ss_res_fb == 0 else 0.0
+    else:
+        r2_fb = 1.0 - (ss_res_fb / ss_tot_fb)
+
+    plt.plot(x_smooth, y_logistic, 'r--', linewidth=2, 
+             label=f'Logistic Estimate\nL={L_fallback:.1f}, k={k_fallback:.3f}, R2={r2_fb:.3f}')
+    print(f"Using fallback logistic curve. R^2={r2_fb:.3f}")
+
+upper_lim = max(L_fit or L_fallback or 0, cur) + 1 # type: ignore
 
 plt.bar(x, diff, label="Number of registrations at that day", alpha=0.7, width=0.5, color="orange")
 plt.step(x, y, label="Cumulative Registration by Day", where="post")
-plt.ylim((0, cur + 1))
+plt.ylim((0, upper_lim))
 # plt.xlim((0, 60))
 plt.legend()
 plt.xlabel("Day")

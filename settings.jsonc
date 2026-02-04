@@ -12,7 +12,7 @@
     
     
     // --- CHANGE THIS TO YOUR PATH ---
-    "delegate-registration-spreadsheet-path": "D:/Downloads/BIPHMUN 2026 INDIVIDUAL Registration form(1-16).xlsx",//"d:/Downloads/BIPHMUN 2025 Individual Registration Form(1-48) (2).xlsx",
+    "delegate-registration-spreadsheet-path": "./form.xlsx",//"d:/Downloads/BIPHMUN 2025 Individual Registration Form(1-48) (2).xlsx",
     
 
     // --- CHANGE THESE IF REG FORM IS CHANGED ---
