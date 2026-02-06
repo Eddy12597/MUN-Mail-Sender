@@ -16,6 +16,12 @@ from dotenv import load_dotenv
 
 from config import *
 
+# Cutoff in excel
+CUTOFF_LENGTH=199
+
+for k, v in CONFIG.items():
+    if len(v) > 199:
+        CONFIG[k] = v[0:CUTOFF_LENGTH-3] + "..."
     
 def raiseerror(s: str = ""):
     raise RuntimeError(s)
@@ -172,7 +178,7 @@ def get_email_html(name: str, committee: str, country: str) -> html_str:
         <p style="color: #fff">Please visit our official MUN website for extra references and resources: </p>
             <a href="__WEBSITE__" style="color: orange">__WEBSITE__</a>
         <p style="color: #fff">Best Regards,</p>
-        <p style="color: #fff">BIPH MUN Team</p>
+        <p style="color: #fff; margin-bottom: 150px;">BIPH MUN Team</p>
     </div>
 </div>
 """
@@ -266,10 +272,10 @@ if not log_file.exists():
 with open(str(Path(CONFIG['config-country-to-code'])), "r", encoding='utf-8') as f:
     convert = json5.load(f)
 
-
 for index, row in df.iterrows():
 
     # 1) parse committee preference list (existing logic)
+    
     committees_raw: list[str] = str(row[CONFIG['committee-preference-question-name']]).strip().split(";")
     
     if len(committees_raw) == 1:
