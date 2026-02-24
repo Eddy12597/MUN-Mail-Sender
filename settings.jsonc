@@ -18,9 +18,18 @@
     // --- CHANGE THESE IF REG FORM IS CHANGED ---
     "preferred-name-question-name": "Preferred Name / 英文名",
     "email-address-question-name": "Email Address / 电子邮件地址",
+    "year-of-grad-question-name": "Grade Level (or equivalent) / 年级",
     "wechat-id-question-name": "Wechat ID / 微信号",
     "committee-preference-question-name": "Attached to the right is the listed topics for BIPHMUN 2026. Please Rank your Committee Preference. Committees and topics can also be found on https://biphmun.org/committees. Note that this does not represent your final assigned committee.",
     "preferred-country-question-name": "Preferred country",
+
+    // --- Mailing-list extra Configs ---
+    "year-of-grad-type": "grade-level", // instead of "direct", which means we obtain year of graduation directly
+    "signup-ddl-delegate-text": "March 1st",
+    "conference-month": "March",
+    "conference-duration-text": "March 20-22, 2026",
+    "delegate-fee": "280",
+    "delegate-form-url": "https://forms.office.com/r/xGJjib7nGN",
 
     // --- USUALLY YOU DONT NEED TO CHANGE THESE ---
     "config-committee-and-country-list-path": "./config.json",

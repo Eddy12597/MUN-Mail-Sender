@@ -53,11 +53,10 @@ if datetime.datetime.now().year != year:
         year = datetime.datetime.now().year
         print(f'{Fore.BLUE}Updated to {year}{Style.RESET_ALL}')
 
-server: smtplib.SMTP
+server = smtplib.SMTP('smtp.office365.com', 587)
 if not DEBUG:
     try:
         print("Logging in...")
-        server = smtplib.SMTP('smtp.office365.com', 587)
         server.starttls()
         server.login(CONFIG['school-email'], password)
         print("Login Successful")
@@ -82,7 +81,7 @@ def html_to_markdown(html: str) -> str:
 
 type html_str=str
 
-def send_email(to: str, body_html: html_str, subject: str = "BIPHMUN Registration Confirmation", sender: str = CONFIG['school-email'], attachments: list[str] = [s.strip() for s in CONFIG['attachments-filenames-list']]) -> bool:  # CHANGED: Return bool to indicate success
+def send_email(to: str, body_html: html_str, server: smtplib.SMTP, subject: str = "BIPHMUN Registration Confirmation", sender: str = CONFIG['school-email'], attachments: list[str] | None = None) -> bool:
     # Generate plain-text fallback from HTML
     body_text = html_to_markdown(body_html)
 
@@ -98,27 +97,28 @@ def send_email(to: str, body_html: html_str, subject: str = "BIPHMUN Registratio
     msg.attach(MIMEText(body_html, "html", "utf-8"))
     
     # Attach attachments
-    for f in attachments:
-        try:
-            with open(f, "rb") as attachment:
-                part = MIMEBase('application', 'octet-stream')
-                part.set_payload(attachment.read())
-            encoders.encode_base64(part)
-            part.add_header(
-                'Content-Disposition',
-                f'attachment; filename= {f}'
-            )
-            msg.attach(part)
-        except FileNotFoundError:
-            print(f"{Fore.RED}File {f} not found.{Style.RESET_ALL}")
-            if input("Skip? [Y/n]") in ("n", "no", "0"):
-                raise SystemExit
+    if attachments:
+        for f in attachments:
+            try:
+                with open(f, "rb") as attachment:
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(attachment.read())
+                encoders.encode_base64(part)
+                part.add_header(
+                    'Content-Disposition',
+                    f'attachment; filename= {f}'
+                )
+                msg.attach(part)
+            except FileNotFoundError:
+                print(f"{Fore.RED}File {f} not found.{Style.RESET_ALL}")
+                if input("Skip? [Y/n]") in ("n", "no", "0"):
+                    raise SystemExit
     
 
     # Show preview in console (plaintext)
     print(f"{Fore.MAGENTA}Sending email to {to}:{Style.RESET_ALL}\n---\n{Style.BRIGHT}Subject: {subject}{Style.RESET_ALL}\n\nPreview:\n\n{body_text}\n")
-    
-    print(f"{Fore.MAGENTA}Attachments filenames: \n{Style.RESET_ALL}\t- {"\n\t- ".join(attachments)}")
+    if attachments:
+        print(f"{Fore.MAGENTA}Attachments filenames: \n{Style.RESET_ALL}\t- {"\n\t- ".join(attachments)}")
 
     if DEBUG:
         outbox_dir = Path("./outbox")
@@ -347,7 +347,9 @@ for index, row in df.iterrows():
     # CHANGED: Send email first and capture the result
     email_success = send_email(
         row[CONFIG['email-address-question-name']],
-        get_email_html(row[CONFIG['preferred-name-question-name']], assigned_committee, assigned_country_name)
+        get_email_html(row[CONFIG['preferred-name-question-name']], assigned_committee, assigned_country_name),
+        attachments=[s.strip() for s in CONFIG['attachments-filenames-list']],
+        server=server
     )
     
     # CHANGED: Determine status based on email sending result
