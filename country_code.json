@@ -65,7 +65,7 @@
   "GE": "Georgia",
   "DE": "Federal Republic of Germany",
   "GH": "Republic of Ghana",
-  "GR": "Hellenic Republic",
+  "GR": "Hellenic Republic / Greece",
   "GD": "Grenada",
   "GT": "Republic of Guatemala",
   "GN": "Republic of Guinea",
@@ -191,5 +191,10 @@
   "VN": "Socialist Republic of Vietnam",
   "YE": "Republic of Yemen",
   "ZM": "Republic of Zambia",
-  "ZW": "Republic of Zimbabwe"
+  "ZW": "Republic of Zimbabwe",
+  "RU-HC": "Union of Soviet Socialist Republics / Russian Federation",
+  "DE-HC": "Democratic Republic of Germany / The Federal Republic of Germany",
+  "RS-HC": "Kingdom of Yugoslavia / Republic of Serbia",
+  "CZ-HC": "Czechoslovak Socialist Republic / Czech Republic",
+  "UA-HC": "Ukraine Soviet Socialist Republic / Ukraine"
 }
