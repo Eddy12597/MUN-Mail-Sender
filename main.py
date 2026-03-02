@@ -265,16 +265,30 @@ for com in committees_list:
 
 log_file = Path("assignments_log.csv")
 if not log_file.exists():
-    with open(log_file, "w", encoding="utf-8") as f:
-        f.write("Name,Email,Committee,CountryCode,CountryName,WeChatID,Status\n")  # CHANGED: Added Status column
+    with open(log_file, "w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Name", "Email", "Committee", "CountryCode", "CountryName", "WeChatID", "Status"])
 
 
 with open(str(Path(CONFIG['config-country-to-code'])), "r", encoding='utf-8') as f:
     convert = json5.load(f)
 
 for index, row in df.iterrows():
-
-    # 1) parse committee preference list (existing logic)
+    # --- Skip & Log Withdrawn Participants ---
+    withdraw_col = CONFIG.get('withdraw-column-name', 'Withdraw')
+    if withdraw_col in df.columns:
+        val = str(row[withdraw_col]).strip().lower()
+        if val in ("yes", "true", "1"):
+            name = row[CONFIG['preferred-name-question-name']]
+            email = row[email_address_question_name]
+            print(f"{Fore.CYAN}Skipping withdrawn participant: {name} ({email}){Style.RESET_ALL}")
+            
+            with open(log_file, "a", encoding="utf-8", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow([name, email, "N/A", "N/A", "N/A", row[CONFIG['wechat-id-question-name']], "WITHDRAWN"])
+            continue
+    
+    # 1) parse committee preference list
     
     committees_raw: list[str] = str(row[CONFIG['committee-preference-question-name']]).strip().split(";")
     

@@ -38,5 +38,6 @@
     "logo-url": "https://biphmun.org/assets/logos/logo-rect-white-text.png",
     "school-email": "mun-biph@basischina.com",
     "school-email-password-path": "./.env",
-    "school-email-password-question": "EMAIL_PASSWORD"
+    "school-email-password-question": "EMAIL_PASSWORD",
+    "withdraw-question-name": "withdraw"
 }
