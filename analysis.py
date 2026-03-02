@@ -6,121 +6,98 @@ from scipy.optimize import curve_fit
 from config import *
 import datetime
 
-curtime = datetime.datetime.now(datetime.UTC).isoformat()
-curyear = curtime[:4]
-curtimestr = curtime.split("T")[0].split(curyear + "-")[1]
+# 1. Setup Dates
+# Start date: January 23, 2026
+START_DATE = datetime.date(2026, 1, 23)
+curtime = datetime.datetime.now(datetime.UTC)
+curdate_obj = curtime.date()
 
-# Logistic function definition
+# Define the function for fitting
 def logistic_func(x, L, k, x0):
     """Logistic function: L / (1 + exp(-k*(x - x0)))"""
     return L / (1 + np.exp(-k * (x - x0)))
 
+# 2. Data Loading
 fn = CONFIG["delegate-registration-spreadsheet-path"]
-
 df = pd.read_excel(Path(fn))
 
-dates: list[str] = list(df["Start time"])
-nums: list[int] = [-1] * 1000
-cur = 0
+# 3. Proper Day Indexing
+# Convert 'Start time' to datetime objects, handling potential string/timestamp mix
+df["Start time"] = pd.to_datetime(df["Start time"])
 
-for i in range(len(dates)):
-    dates[i] = str(dates[i]).split(" ")[0].split(curyear + "-")[-1]
-    date = int(dates[i].split("-")[0]) * 31 + int(dates[i].split("-")[1]) - 53
-    cur += 1
-    nums[date] = cur
+# Calculate day index: (Registration Date - Jan 23)
+# result.days gives us an integer 0, 1, 2...
+day_indices = [(d.date() - START_DATE).days for d in df["Start time"]]
 
-curdate = curtimestr
-print(curdate)
-date = int(curdate.split("-")[0]) * 31 + int(curdate.split("-")[1]) - 53
-nums[date] = cur
+# We use a dictionary to count registrations per day to avoid fixed-size list issues
+daily_counts = {}
+for day in day_indices:
+    daily_counts[day] = daily_counts.get(day, 0) + 1
 
-x, y = [], []
-diff = [0]
-firstidx = -1
-for i, n in enumerate(nums):
-    if n == -1:
-        continue
-    if firstidx == -1:
-        firstidx = i
-    x.append(i)
-    y.append(n)
-    if len(y) > 1:
-        diff.append(y[-1] - y[-2])
-        
-print(f"Current Total: {cur}")
-diff[0] = nums[firstidx]
+# Ensure current date is represented in our range
+max_day = max(max(daily_counts.keys()), (curdate_obj - START_DATE).days)
+x_data = []
+y_data = []
+diff = []
+cumulative = 0
 
-# Fit logistic regression
-x_data = np.array(x)
-y_data = np.array(y)
+# Build continuous timeline from Day 0 to max_day
+for d in range(max_day + 1):
+    count = daily_counts.get(d, 0)
+    cumulative += count
+    
+    # We only plot points where we actually have data or at the very end
+    # to keep the regression clean, but you can also include all days.
+    if d in daily_counts or d == max_day:
+        x_data.append(d)
+        y_data.append(cumulative)
+        diff.append(count)
 
-# Initial parameter guesses:
-# L: maximum value (carrying capacity), use 80 as initial guess to match ylim
-# k: growth rate, start with a small positive value
-# x0: midpoint, guess based on data range
-initial_guess = [80, 0.1, np.median(x_data)]
+x_data = np.array(x_data)
+y_data = np.array(y_data)
 
-L_fit: float | int =0
-L_fallback: float | int =0
+print(f"Current Total: {cumulative}")
+print(f"Days since start: {max_day}")
 
-# Try to fit logistic curve, if it fails, use sensible defaults
+# 4. Fit Logistic Regression
+initial_guess = [max(y_data) * 1.5, 0.1, np.median(x_data)]
+L_plot, k_plot, x0_plot = 0, 0, 0
+is_fit = False
+
 try:
-    params, covariance = curve_fit(logistic_func, x_data, y_data, 
-                                   p0=initial_guess, maxfev=5000)
-    L_fit, k_fit, x0_fit = params
-    # Generate smooth logistic curve for the full x-range (0 to 60)
-    x_smooth = np.linspace(0, 60, 200)
-    y_logistic = logistic_func(x_smooth, L_fit, k_fit, x0_fit)
+    params, _ = curve_fit(logistic_func, x_data, y_data, p0=initial_guess, maxfev=5000)
+    L_plot, k_plot, x0_plot = params
     
-    # Compute R^2 on the observed x-data using the fitted parameters
-    y_pred_fit = logistic_func(x_data, L_fit, k_fit, x0_fit)
-    ss_res = np.sum((y_data - y_pred_fit) ** 2)
+    y_pred = logistic_func(x_data, L_plot, k_plot, x0_plot)
+    ss_res = np.sum((y_data - y_pred) ** 2)
     ss_tot = np.sum((y_data - np.mean(y_data)) ** 2)
-    if ss_tot == 0:
-        r2 = 1.0 if ss_res == 0 else 0.0
-    else:
-        r2 = 1.0 - (ss_res / ss_tot)
+    r2 = 1.0 - (ss_res / ss_tot) if ss_tot != 0 else 0
+    
+    label_str = f'Logistic Fit: L={L_plot:.1f}, R2={r2:.3f}'
+    is_fit = True
+    
+except Exception as e:
+    print(f"Fit failed: {e}")
+    # Fallback params
+    L_plot, k_plot, x0_plot = max(y_data), 0.1, np.median(x_data)
+    label_str = 'Logistic Estimate (Fallback)'
 
-    # Plot logistic regression with R^2 in the legend
-    plt.plot(x_smooth, y_logistic, 'r-', linewidth=2, 
-             label=f'Logistic Regression\nL={L_fit:.1f}, k={k_fit:.3f}, x0={x0_fit:.1f}, R2={r2:.3f}')
-    
-    print(f"Logistic parameters: L={L_fit:.1f}, k={k_fit:.3f}, x0={x0_fit:.1f}, R^2={r2:.3f}")
-    
-except (RuntimeError, ValueError) as e:
-    print(f"Could not fit logistic curve: {e}")
-    print("Using fallback logistic curve based on data range")
-    
-    # Fallback: simple logistic that extends to x=60, y≈80
-    L_fallback = 80
-    k_fallback = 0.2
-    x0_fallback = np.mean(x_data)
-    
-    x_smooth = np.linspace(0, 60, 200)
-    y_logistic = logistic_func(x_smooth, L_fallback, k_fallback, x0_fallback)
-    
-    # Compute R^2 for the fallback curve as an informative estimate
-    y_pred_fallback = logistic_func(x_data, L_fallback, k_fallback, x0_fallback)
-    ss_res_fb = np.sum((y_data - y_pred_fallback) ** 2)
-    ss_tot_fb = np.sum((y_data - np.mean(y_data)) ** 2)
-    if ss_tot_fb == 0:
-        r2_fb = 1.0 if ss_res_fb == 0 else 0.0
-    else:
-        r2_fb = 1.0 - (ss_res_fb / ss_tot_fb)
+# 5. Plotting
+plt.figure(figsize=(10, 6))
 
-    plt.plot(x_smooth, y_logistic, 'r--', linewidth=2, 
-             label=f'Logistic Estimate\nL={L_fallback:.1f}, k={k_fallback:.3f}, R2={r2_fb:.3f}')
-    print(f"Using fallback logistic curve. R^2={r2_fb:.3f}")
+# Smooth curve for prediction
+x_smooth = np.linspace(0, max(max_day, 60), 200)
+y_smooth = logistic_func(x_smooth, L_plot, k_plot, x0_plot)
 
-upper_lim = max(L_fit or L_fallback or 0, cur) + 1 # type: ignore
+plt.bar(x_data, diff, label="Daily Registrations", alpha=0.4, color="orange")
+plt.step(x_data, y_data, label="Cumulative Count", where="post", linewidth=2)
+plt.plot(x_smooth, y_smooth, 'r--', label=label_str)
 
-plt.bar(x, diff, label="Number of registrations at that day", alpha=0.7, width=0.5, color="orange")
-plt.step(x, y, label="Cumulative Registration by Day", where="post")
-plt.ylim((0, upper_lim))
-# plt.xlim((0, 60))
+plt.ylim(0, max(L_plot * 1.1, cumulative + 10))
+plt.xlabel(f"Days since Jan 23")
+plt.ylabel("Number of Delegates")
+plt.title("Delegate Registration Growth")
 plt.legend()
-plt.xlabel("Day")
-plt.ylabel("Number")
-plt.title("Cumulative Registration by Day")
+plt.grid(axis='y', linestyle='--', alpha=0.7)
 
 plt.show()

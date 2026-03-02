@@ -53,16 +53,18 @@ if datetime.datetime.now().year != year:
         year = datetime.datetime.now().year
         print(f'{Fore.BLUE}Updated to {year}{Style.RESET_ALL}')
 
-server = smtplib.SMTP('smtp.office365.com', 587)
+server: smtplib.SMTP | None = None
 if not DEBUG:
     try:
         print("Logging in...")
+        server = smtplib.SMTP('smtp.office365.com', 587)
         server.starttls()
         server.login(CONFIG['school-email'], password)
         print("Login Successful")
-    except smtplib.SMTPAuthenticationError:
-        print(f"{Fore.MAGENTA}Incorrect Credentials. Did you forget to enter the password in {Style.BRIGHT}.env{Style.NORMAL}?{Style.RESET_ALL}")
+    except (smtplib.SMTPAuthenticationError, ConnectionError) as e:
+        print(f"{Fore.MAGENTA}Login Failed: {e}. Check .env credentials.{Style.RESET_ALL}")
         raise SystemExit
+
 
 def html_to_markdown(html: str) -> str:
     """Convert HTML email template into markdown/plaintext preview."""
@@ -81,7 +83,7 @@ def html_to_markdown(html: str) -> str:
 
 type html_str=str
 
-def send_email(to: str, body_html: html_str, server: smtplib.SMTP, subject: str = "BIPHMUN Registration Confirmation", sender: str = CONFIG['school-email'], attachments: list[str] | None = None) -> bool:
+def send_email(to: str, body_html: html_str, server: smtplib.SMTP | None, subject: str = "BIPHMUN Registration Confirmation", sender: str = CONFIG['school-email'], attachments: list[str] | None = None) -> bool:
     # Generate plain-text fallback from HTML
     body_text = html_to_markdown(body_html)
 
@@ -120,7 +122,7 @@ def send_email(to: str, body_html: html_str, server: smtplib.SMTP, subject: str 
     if attachments:
         print(f"{Fore.MAGENTA}Attachments filenames: \n{Style.RESET_ALL}\t- {"\n\t- ".join(attachments)}")
 
-    if DEBUG:
+    if DEBUG or server is None:
         outbox_dir = Path("./outbox")
         outbox_dir.mkdir(exist_ok=True)
         outbox_file = outbox_dir / f"{to.replace('@','_at_')}.eml"
@@ -195,6 +197,8 @@ def get_email_html(name: str, committee: str, country: str) -> html_str:
 
 delegate_reg_path = Path(CONFIG['delegate-registration-spreadsheet-path'])
 df = pd.read_excel(str(delegate_reg_path))
+
+print(df.columns)
 
 email_address_question_name = CONFIG.get("email-address-question-name", "Email Address")
 
@@ -273,9 +277,12 @@ if not log_file.exists():
 with open(str(Path(CONFIG['config-country-to-code'])), "r", encoding='utf-8') as f:
     convert = json5.load(f)
 
+# Note: This is the stripped result (no parenthesis)
+invalid_committees = {"Security Council"} 
+
 for index, row in df.iterrows():
     # --- Skip & Log Withdrawn Participants ---
-    withdraw_col = CONFIG.get('withdraw-column-name', 'Withdraw')
+    withdraw_col = CONFIG.get('withdraw-question-name', 'withdraw')
     if withdraw_col in df.columns:
         val = str(row[withdraw_col]).strip().lower()
         if val in ("yes", "true", "1"):
@@ -289,15 +296,13 @@ for index, row in df.iterrows():
             continue
     
     # 1) parse committee preference list
-    
     committees_raw: list[str] = str(row[CONFIG['committee-preference-question-name']]).strip().split(";")
     
     if len(committees_raw) == 1:
-        print(f"{Fore.YELLOW}Maybe it's Chinese semicolon characters. Retrying...")
         committees_raw = committees_raw[0].split("；")
-        if len(committees_raw) == 1:
-            raiseerror(f"Recognized only one committee: {committees_raw}.")
-    
+        if len(committees_raw) == 1 and not committees_raw[0]:
+             continue
+
     committee_choices: list[str] = []
     for comr in committees_raw:
         comr = comr.strip()
@@ -306,59 +311,56 @@ for index, row in df.iterrows():
         match = re.match(r"^(.*?)\s*\(", comr.strip())
         name = match.group(1).strip() if match else comr.strip()
         if name not in config:
-            raiseerror(f"Committee not recognized: {row[CONFIG['committee-preference-question-name']]}\n\tat index {index}")
+            raiseerror(f"Committee not recognized: {name}\n\tat index {index}")
         committee_choices.append(name)
 
-    # 2) parse preferred countries column (ISO2, up to 3). Accept separators ; or ,
+    # 2) parse preferred countries column
     preferred_raw = str(row.get(CONFIG['preferred-country-question-name'], '')).strip()
     preferred_list: list[str] = []
     if preferred_raw:
         prefs = [p.strip().upper() for p in re.split(r"[;,]", preferred_raw) if p.strip()]
-        prefs = prefs[:3]
-        validated_prefs = []
-        for code in prefs:
-            if len(code) != 2:
-                print(f"{Fore.YELLOW}Warning: preferred code '{code}' at row {index} doesn't look like an ISO2 code — ignoring.{Style.RESET_ALL}")
-                continue
-            # We accept codes even if convert doesn't have them, but warn
-            if code not in convert:
-                print(f"{Fore.YELLOW}Note: preferred code '{code}' at row {index} not found in convert mapping; we'll still try to assign by code.{Style.RESET_ALL}")
-            validated_prefs.append(code)
-        preferred_list = validated_prefs
-    # 3) assign committee
+        preferred_list = prefs[:3]
+
+    # 3) assign committee (Filtering out invalid ones)
     assigned_committee = None
     for choice in committee_choices:
+        # Check if the committee is canceled
+        if choice in invalid_committees:
+            print(f"{Fore.YELLOW}Skipping canceled committee '{choice}' for {row[CONFIG['preferred-name-question-name']]}{Style.RESET_ALL}")
+            continue
+            
+        # Check if the committee has spots left
         if committees_remaining.get(choice): 
             assigned_committee = choice
             break
+            
     if assigned_committee is None:
-        raiseerror(f"No available committees for {row[CONFIG['preferred-name-question-name']]} at row {index}")
-        raise SystemExit
+        print(f"{Fore.RED}No available or valid committees for {row[CONFIG['preferred-name-question-name']]} at row {index}{Style.RESET_ALL}")
+        # Log failure and move to next person instead of crashing the whole script
+        with open(log_file, "a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([row[CONFIG['preferred-name-question-name']], row[email_address_question_name], "NONE", "N/A", "N/A", row[CONFIG['wechat-id-question-name']], "FAILED_NO_COMMITTEE"])
+        continue
         
-    # 4) assign country: try preferred codes for that committee first (in their order), otherwise pop the first remaining
+    # 4) assign country
     assigned_code = None
-
     if preferred_list:
-        
         for code in preferred_list:
             if code in committees_remaining[assigned_committee]:
                 assigned_code = code
                 committees_remaining[assigned_committee].remove(code)
                 print(f"{Fore.GREEN}Assigned preferred country: {code}{Style.RESET_ALL}")
                 break
-            else:
-                print(f"{Fore.YELLOW}Preferred country {code} not available in {assigned_committee}{Style.RESET_ALL}")
                 
     if not assigned_code:
         if not committees_remaining[assigned_committee]:
-            raiseerror(f"No countries left for committee {assigned_committee} when assigning row {index}")
-            raise SystemExit
+             continue # Safety check
         assigned_code = committees_remaining[assigned_committee].pop(0)
         print(f"{Fore.BLUE}Assigned first available country: {assigned_code}{Style.RESET_ALL}")
 
     assigned_country_name = convert.get(assigned_code, assigned_code)
 
-    # CHANGED: Send email first and capture the result
+    # Send email
     email_success = send_email(
         row[CONFIG['email-address-question-name']],
         get_email_html(row[CONFIG['preferred-name-question-name']], assigned_committee, assigned_country_name),
@@ -366,15 +368,8 @@ for index, row in df.iterrows():
         server=server
     )
     
-    # CHANGED: Determine status based on email sending result
-    if email_success:
-        if DEBUG:
-            status = "DEBUG"
-        else:
-            status = "SENT"
-    else:
-        status = "FAILED"
-    # CHANGED: Write to log after email attempt with status
+    status = "DEBUG" if DEBUG else ("SENT" if email_success else "FAILED")
+    
     with open(log_file, "a", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([
@@ -384,7 +379,8 @@ for index, row in df.iterrows():
             assigned_code,
             assigned_country_name,
             row[CONFIG['wechat-id-question-name']],
-            status  # CHANGED: Added status column
+            status
         ])
 
-if not DEBUG: server.quit() # type: ignore
+if server:
+    server.quit()
