@@ -1,6 +1,19 @@
 {
     "_comment": "No Parentheses!!!",
-    "Historical Human Rights Council": ["RU-HC", "US", "GB", "TR", "GR", "FR", "DE-HC", "SR-HC", "CN", "IN", "CZ-HC", "CA", "JP", "EG", "UA-HC"],
-    "General Assembly": ["US", "GB", "CN", "RU", "FR", "CA", "DK", "NO", "KE", "CR", "NZ", "FI", "BT", "MX", "RW", "SG", "MA", "BR", "MH", "CH"],
-    "UN Environment Programme": ["US", "CN", "RU", "FR", "JP", "DE", "GB", "IN", "CA", "LU", "BR", "AE", "NG", "KR", "AU"]
+    "Historical Human Rights Council": [
+        "RU-HC", "US", "GB", "TR", "GR", 
+        "FR", "DE-HC", "SR-HC", "CN", "IN", 
+        "CZ-HC", "CA", "JP", "EG", "UA-HC"
+    ],
+    "General Assembly": [
+        "US", "GB", "CN", "RU", "FR", 
+        "CA", "DK", "NO", "KE", "CR", 
+        "NZ", "FI", "BT", "MX", "RW", 
+        "SG", "MA", "BR", "MH", "CH"
+    ],
+    "UN Environment Programme": [
+        "US", "CN", "RU", "FR", "JP", 
+        "DE", "GB", "IN", "CA", "LU", 
+        "BR", "AE", "NG", "KR", "AU"
+    ]
 }

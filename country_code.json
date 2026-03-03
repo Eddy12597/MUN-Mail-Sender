@@ -192,9 +192,11 @@
   "YE": "Republic of Yemen",
   "ZM": "Republic of Zambia",
   "ZW": "Republic of Zimbabwe",
-  "RU-HC": "Union of Soviet Socialist Republics / Russian Federation",
+  
+
+  "CZ-HC": "Czechoslovak Socialist Republic / Czech Republic",
   "DE-HC": "Democratic Republic of Germany / The Federal Republic of Germany",
   "RS-HC": "Kingdom of Yugoslavia / Republic of Serbia",
-  "CZ-HC": "Czechoslovak Socialist Republic / Czech Republic",
+  "RU-HC": "Union of Soviet Socialist Republics / Russian Federation",
   "UA-HC": "Ukraine Soviet Socialist Republic / Ukraine"
 }
