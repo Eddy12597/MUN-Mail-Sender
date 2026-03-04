@@ -36,6 +36,7 @@
     "config-country-to-code": "./country_code.json",
     "official-website-url-base": "https://biphmun.org", 
     "logo-url": "https://biphmun.org/assets/logos/logo-rect-white-text.png",
+    "school-question-name": "School / 学校名称",
     "school-email": "mun-biph@basischina.com",
     "school-email-password-path": "./.env",
     "school-email-password-question": "EMAIL_PASSWORD",

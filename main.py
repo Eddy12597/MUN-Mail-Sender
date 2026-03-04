@@ -13,6 +13,7 @@ from colorama import Fore, Style
 from html import unescape
 import csv
 from dotenv import load_dotenv
+from typing import Literal
 
 from config import *
 
@@ -167,7 +168,7 @@ def send_email(to: str, body_html: html_str, server: smtplib.SMTP | None, subjec
         return False  # CHANGED: Return False when canceled
 
 
-def get_email_html(name: str, committee: str, country: str) -> html_str:
+def get_email_html(name: str, committee: str, country: str, school: str | None = None) -> html_str:
     html = """
 <div id="main" style="font-family: Arial; font-size: 20px; display: flex; align-items: center; flex-direction: column;background-color: #0a4d7f">
     <div id="graphics" style="font-family: Arial; font-size: 20px; width: 80%">
@@ -179,6 +180,8 @@ def get_email_html(name: str, committee: str, country: str) -> html_str:
         <p style="color: #fff">Your committee is <b>__COMMITTEE__</b>, and your country is <b>__COUNTRY__</b>.</p>
         <p style="color: #fff">Please visit our official MUN website for extra references and resources: </p>
             <a href="__WEBSITE__" style="color: orange">__WEBSITE__</a>
+        __OPTIONS__
+        <p style="color: #fff">Also, please be noted that transportation to and from the event <b>will not be provided</b>. We apologize for any inconveniences caused and your understanding.</p>
         <p style="color: #fff">Best Regards,</p>
         <p style="color: #fff; margin-bottom: 150px;">BIPH MUN Team</p>
     </div>
@@ -192,7 +195,8 @@ def get_email_html(name: str, committee: str, country: str) -> html_str:
         .replace("__WEBSITE__", CONFIG['official-website-url-base'])\
         .replace("__LOGO_URL__", CONFIG.get("logo-url",\
             CONFIG.get("official-website-url-base", "https://biphmun.org") + "/assets/logos/logo-rect-text-white.png"
-        ))
+        ))\
+        .replace("__OPTIONS__", "" if school is None else '<p style="color: #fff">For BIPH students: Training will be provided on March 11st and March 18th, in A207. All participants are welcome. We will cover basic procedures and guidance on research.</p>')
 
 
 delegate_reg_path = Path(CONFIG['delegate-registration-spreadsheet-path'])
@@ -308,13 +312,25 @@ for index, row in df.iterrows():
         comr = comr.strip()
         if not comr:
             continue
-        match = re.match(r"^(.*?)\s*\(", comr.strip())
-        name = match.group(1).strip() if match else comr.strip()
+            
+        # Extract name (removing anything in parentheses)
+        match = re.match(r"^(.*?)\s*\(", comr)
+        name = match.group(1).strip() if match else comr
+        
+        # 1. First, check if it's a committee we are ignoring/canceled
+        if name in invalid_committees:
+            # We skip adding it to choices entirely so it isn't processed later
+            print(f"{Fore.YELLOW}Skipping canceled committee '{name}' for {row[CONFIG['preferred-name-question-name']]}{Style.RESET_ALL}")
+            continue
+            
+        # 2. Then, check if it's a valid recognized committee in our config
         if name not in config:
             raiseerror(f"Committee not recognized: {name}\n\tat index {index}")
+        
         committee_choices.append(name)
+       
 
-    # 2) parse preferred countries column
+    # 2) parse preferred countries column (Rest of your code remains the same)
     preferred_raw = str(row.get(CONFIG['preferred-country-question-name'], '')).strip()
     preferred_list: list[str] = []
     if preferred_raw:
@@ -363,7 +379,7 @@ for index, row in df.iterrows():
     # Send email
     email_success = send_email(
         row[CONFIG['email-address-question-name']],
-        get_email_html(row[CONFIG['preferred-name-question-name']], assigned_committee, assigned_country_name),
+        get_email_html(row[CONFIG['preferred-name-question-name']], assigned_committee, assigned_country_name, row[CONFIG['school-question-name']]),
         attachments=[s.strip() for s in CONFIG['attachments-filenames-list']],
         server=server
     )
