@@ -120,8 +120,8 @@ def send_email(to: str, body_html: html_str, server: smtplib.SMTP | None, subjec
         print(f"{Fore.GREEN}Saved to outbox: {outbox_file}{Style.RESET_ALL}")
         return True 
 
-    confirm = input("Send this email? [y/N] ").lower().strip()
-    if confirm == "y":
+    confirm = input("Send this email? [Y/n] ").lower().strip()
+    if confirm != "n":
         try:
             server.send_message(msg)
             print(f"{Fore.GREEN}Email sent!{Style.RESET_ALL}")
@@ -157,6 +157,7 @@ def get_email_html(name: str, committee: str, country: str, school: str | None =
         <p style="color: #fff">Best Regards,</p>
         <p style="color: #fff; margin-bottom: 150px;">BIPH MUN Team</p>
     </div>
+    <p style="font-size: 11px; color: #fff; margin-bottom: 50px;">This email is automatically generated from a script. Errors may be present. If you have any questions, feel free to reply to this email.</p>
 </div>
 """
     return html\

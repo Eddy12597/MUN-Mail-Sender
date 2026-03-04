@@ -1,6 +1,6 @@
 {
     // --- CONTROLS WHETHER IT ACTUALLY RUNS OR ITS A TEST RUN. True = test run, False = ACTUAL run
-    "DEBUG": "True",
+    "DEBUG": "False",
     // --- CHANGE THE YEAR AND YOUR EMAIL ---
     "year": "2026",
     "my-email": "eddy12597@163.com", // your email would be Cc'ed
