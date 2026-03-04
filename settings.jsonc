@@ -6,7 +6,7 @@
     "my-email": "eddy12597@163.com", // your email would be Cc'ed
 
     // --- CHANGE WECHAT GROUPCHAT QR CODE FILENAME ---
-    "attachments-filenames-list": ["wechat-qr-code.jpg"],
+    "attachments-filenames-list": ["wechat-qr-code.png"],
 
     // --- YOU WILL NEED TO INPUT THE PASSWORD IN THE .env FILE. If you do not know the password, ask me or ask the club sponsor ---
     

@@ -9,6 +9,8 @@ outbox/
 *.xls
 !test.xlsx
 
+wechat-qr-code.png
+
 # --- GENERIC .GITIGNORE BELOW ---
 
 .vscode/

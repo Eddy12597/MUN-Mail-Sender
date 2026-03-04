@@ -259,8 +259,13 @@ for index, row in df.iterrows():
             attachments=[s.strip() for s in CONFIG['attachments-filenames-list']],
             server=server
         )
+        status = "SENT"
+        if DEBUG:
+            status = "DEBUG"
+        if not email_success:
+            status = "FAILED"
         
         with open(log_file, "a", encoding="utf-8", newline="") as f:
-            csv.writer(f).writerow([row[CONFIG['preferred-name-question-name']], row[email_address_question_name], assigned_committee, assigned_code, assigned_country_name, row[CONFIG['wechat-id-question-name']], "SENT" if email_success else "FAILED"])
+            csv.writer(f).writerow([row[CONFIG['preferred-name-question-name']], row[email_address_question_name], assigned_committee, assigned_code, assigned_country_name, row[CONFIG['wechat-id-question-name']], status])
 
 if server: server.quit()
